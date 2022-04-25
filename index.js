@@ -1,75 +1,68 @@
 const PORT = process.env.PORT || 8000;
 const express = require("express");
 const app = express();
-const axios = require("axios");
-const cheerio = require("cheerio");
+const docx = require("docx");
+// const express = require("@runkit/runkit/express-endpoint/1.0.0");
+// const app = express(exports);
 
-const articles = [];
-const newspapers = [
-  {
-    name: "thetimes",
-    address: "https://www.thetimes.co.uk/environment/climate-change",
-    base: "",
-  },
-  {
-    name: "guardian",
-    address: "https://www.theguardian.com/environment/climate-change",
-    base: "",
-  },
-  {
-    name: "telegraph",
-    address: "https://www.telegraph.co.uk/climate-change",
-    base: "https://www.telegraph.co.uk",
-  },
-];
-newspapers.forEach((newspaper) => {
-  axios.get(newspaper.address).then((response) => {
-    const html = response.data;
-    const $ = cheerio.load(html);
-    $('a:contains("climate")', html).each(function () {
-      const title = $(this).text();
-      const url = $(this).attr("href");
-      articles.push({
-        title,
-        url: newspaper.base + url,
-        source: newspaper.name,
-      });
-    });
+const { Document, Packer, Paragraph, TextRun } = docx;
+app.get("/news", async (req, res) => {
+  const doc = new Document({
+    sections: [
+      {
+        properties: {},
+        children: [
+          new Paragraph({
+            children: [
+              new TextRun("Hello World"),
+              new TextRun({
+                text: "Foo Bar",
+                bold: true,
+              }),
+
+              new TextRun({
+                text: "\tGithub is the best",
+                bold: true,
+              }),
+            ],
+          }),
+        ],
+      },
+    ],
   });
-});
-app.get("/", (req, res) => {
-  res.json("Welcome to my climmate change news api");
-});
-app.get("/news/:newspaperId", async (req, res) => {
-  const newspaperId = req.params.newspaperId;
-  const newspaper = newspapers.filter(
-    (newspaper) => newspaper.name == newspaperId
-  );
-  const newspaperAddress = newspaper[0].address;
-  const newspaperBase = newspaper[0].base;
 
-  axios
-    .get(newspaperAddress)
-    .then((response) => {
-      const html = response.data;
-      const $ = cheerio.load(html);
-      let specificArticles = [];
-      $('a:contains("climate")', html).each(function () {
-        const title = $(this).text();
-        const url = $(this).attr("href");
-        specificArticles.push({
-          title,
-          url: newspaperBase + url,
-          source: newspaperBase,
-        });
-      });
-      res.json(specificArticles);
-    })
-    .catch((err) => console.log(err));
-  //   console.log(newspaper);
-});
+  const b64string = await Packer.toBase64String(doc);
 
-app.get("/news", (req, res) => {
-  res.json(articles);
+  res.setHeader("Content-Disposition", "attachment; filename=My Document.docx");
+  res.send(Buffer.from(b64string, "base64"));
 });
+// app.get("/", async (req, res) => {
+//   const doc = new Document({
+//     sections: [
+//       {
+//         properties: {},
+//         children: [
+//           new Paragraph({
+//             children: [
+//               new TextRun("Hello World"),
+//               new TextRun({
+//                 text: "Foo Bar",
+//                 bold: true,
+//               }),
+//               new TextRun({
+//                 text: "\tGithub is the best",
+//                 bold: true,
+//               }),
+//             ],
+//           }),
+//         ],
+//       },
+//     ],
+//   });
+
+//   const b64string = await Packer.toBase64String(doc);
+
+//   res.setHeader("Content-Disposition", "attachment; filename=My Document.docx");
+//   res.send(Buffer.from(b64string, "base64"));
+// });
 app.listen(PORT, () => console.log(`server running on PORT ${PORT}`));
